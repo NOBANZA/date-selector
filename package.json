@@ -1,0 +1,12 @@
+{
+  "name": "date-selector",
+  "version": "1.0.0",
+  "description": "A simple date selection tool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Aristhide Nobanza",
+  "license": "MIT",
+  "dependencies": {}
+}
