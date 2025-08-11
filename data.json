@@ -1,0 +1,50 @@
+{
+  "dates": [
+    {
+      "date": "2025-06-17"
+    },
+    {
+      "date": "2025-08-28",
+      "closing": {
+        "title": "Brother",
+        "name": "me",
+        "userId": 212412
+      }
+    },
+    {
+      "date": "2025-08-11"
+    }
+  ],
+  "users": [
+    {
+      "id": 212400,
+      "username": "guest",
+      "password": "guest123",
+      "enabled": true
+    },
+    {
+      "id": 212401,
+      "username": "admin",
+      "password": "Anodateselect251@",
+      "enabled": true
+    },
+    {
+      "id": 212412,
+      "username": "me",
+      "password": "me",
+      "title": "Brother",
+      "firstName": "me",
+      "lastName": "me",
+      "enabled": true
+    },
+    {
+      "id": 212413,
+      "username": "xx",
+      "password": "xx",
+      "title": "Brother",
+      "firstName": "xx",
+      "lastName": "xx",
+      "enabled": true
+    }
+  ]
+}
