@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; }
+    h1, h2 { color: #333; }
+    input, select, button { padding: 8px; margin: 5px 0 15px; font-size: 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    th { background-color: #eee; }
+    .section { margin-bottom: 30px; }
+    .disabled-option { color: #999; }
+  </style>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+
+  <!-- User Management -->
+  <div class="section">
+    <h2>User Access Control</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Username</th><th>Password</th><th>Title</th><th>First Name</th><th>Last Name</th><th>Enabled</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="userTable"></tbody>
+    </table>
+
+    <h3>Add New User</h3>
+    <label>Username: <input type="text" id="newUser" /></label>
+    <label>Password: <input type="text" id="newPass" /></label>
+    <label>Title:
+      <select id="newTitle">
+        <option value="Brother">Brother</option>
+        <option value="Sister">Sister</option>
+      </select>
+    </label>
+    <label>First Name: <input type="text" id="newFirst" /></label>
+    <label>Last Name: <input type="text" id="newLast" /></label>
+    <button onclick="addUser()">Add User</button>
+  </div>
+
+  <!-- Date Management -->
+  <div class="section">
+    <h2>Add New Date</h2>
+    <input type="date" id="newDate">
+    <button onclick="addDate()">Add Date</button>
+  </div>
+
+  <!-- Booking Table -->
+  <div class="section">
+    <h2>All Bookings</h2>
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Opening Prayer</th><th>Closing Prayer</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="adminTable"></tbody>
+    </table>
+  </div>
+
+  <!-- Admin Booking -->
+  <div class="section">
+    <h2>Book a Slot for Someone</h2>
+    <label>User:
+      <select id="adminUserSelect" onchange="fillUserDetails()"></select>
+    </label>
+    <label>Date:
+      <select id="adminBookDate"></select>
+    </label>
+    <label>Slot:
+      <select id="adminBookSlot">
+        <option value="opening">Opening Prayer</option>
+        <option value="closing">Closing Prayer</option>
+      </select>
+    </label>
+    <button onclick="adminBookSlot()">Book Slot</button>
+  </div>
+
+  <button onclick="goToUser()">Return to User Interface</button>
+
+  <script>
+    let userMap = {};
+    let bookedUserIds = new Set();
+
+    function goToUser() {
+      window.location.href = 'index.html';
+    }
+
+    async function loadAdminData() {
+      const res = await fetch('/admin/data');
+      const data = await res.json();
+      const table = document.getElementById('adminTable');
+      table.innerHTML = '';
+
+      bookedUserIds.clear();
+      data.dates.forEach(entry => {
+        if (entry.opening?.userId) bookedUserIds.add(entry.opening.userId);
+        if (entry.closing?.userId) bookedUserIds.add(entry.closing.userId);
+
+        const row = document.createElement('tr');
+        const opening = entry.opening ? `${entry.opening.title} ${entry.opening.name}` : '—';
+        const closing = entry.closing ? `${entry.closing.title} ${entry.closing.name}` : '—';
+
+        row.innerHTML = `
+          <td>${entry.date}</td>
+          <td>${opening}</td>
+          <td>${closing}</td>
+          <td>
+            ${entry.opening ? `<button onclick="unlock('${entry.date}', 'opening')">Unlock Opening</button>` : ''}
+            ${entry.closing ? `<button onclick="unlock('${entry.date}', 'closing')">Unlock Closing</button>` : ''}
+            <button onclick="deleteDate('${entry.date}')">Delete Date</button>
+          </td>
+        `;
+        table.appendChild(row);
+      });
+
+      populateBookingDates(data.dates);
+      loadUsers(); // refresh dropdown after bookings
+    }
+
+    async function loadUsers() {
+      const res = await fetch('/admin/users');
+      const users = await res.json();
+      const select = document.getElementById('adminUserSelect');
+      select.innerHTML = '';
+      userMap = {};
+
+      users.forEach(user => {
+        const label = `${user.title || 'Brother'} ${user.lastName || user.username}`;
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = `${label} (${user.id})`;
+        if (bookedUserIds.has(user.id)) {
+          option.disabled = true;
+          option.className = 'disabled-option';
+          option.textContent += ' — Already Booked';
+        }
+        select.appendChild(option);
+        userMap[user.id] = user;
+      });
+
+      const table = document.getElementById('userTable');
+      table.innerHTML = '';
+      users.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${user.id}</td>
+          <td>${user.username}</td>
+          <td>${user.password}</td>
+          <td>${user.title || '—'}</td>
+          <td>${user.firstName || '—'}</td>
+          <td>${user.lastName || '—'}</td>
+          <td>${user.enabled ? 'Enabled' : 'Disabled'}</td>
+          <td>
+            <button onclick="toggleUser('${user.username}')">${user.enabled ? 'Disable' : 'Enable'}</button>
+            <button onclick="deleteUser('${user.username}')">Delete</button>
+          </td>
+        `;
+        table.appendChild(row);
+      });
+    }
+
+    function fillUserDetails() {
+      const userId = document.getElementById('adminUserSelect').value;
+      const user = userMap[userId];
+      if (user) {
+        console.log(`Selected: ${user.title} ${user.lastName || user.username}`);
+      }
+    }
+
+    async function adminBookSlot() {
+      const userId = document.getElementById('adminUserSelect').value;
+      const date = document.getElementById('adminBookDate').value;
+      const slot = document.getElementById('adminBookSlot').value;
+
+      const user = userMap[userId];
+      if (!user || !date || !slot) {
+        return alert('Please select all fields.');
+      }
+
+      const res = await fetch('/admin/book-slot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date,
+          slot,
+          userId: user.id,
+          title: user.title,
+          name: user.lastName || user.username
+        })
+      });
+
+      if (res.ok) {
+        loadAdminData();
+      } else {
+        const error = await res.text();
+        alert(`Failed to book slot.\n\n${error}`);
+      }
+    }
+
+    async function addUser() {
+      const username = document.getElementById('newUser').value.trim();
+      const password = document.getElementById('newPass').value.trim();
+      const title = document.getElementById('newTitle').value;
+      const firstName = document.getElementById('newFirst').value.trim();
+      const lastName = document.getElementById('newLast').value.trim();
+
+      if (!username || !password || !firstName || !lastName) {
+        return alert('Please fill in all required fields.');
+      }
+
+      await fetch('/admin/add-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, title, firstName, lastName })
+      });
+      loadUsers();
+    }
+
+
+    async function addDate() {
+      const date = document.getElementById('newDate').value;
+      if (!date) return alert('Please select a date.');
+      const res = await fetch('/admin/add-date', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date })
+      });
+      if (res.ok) {
+        document.getElementById('newDate').value = '';
+        loadAdminData();
+      } else {
+        alert('Date already exists or failed to add.');
+      }
+    }
+
+    async function unlock(date, type) {
+      const res = await fetch('/admin/unlock-date', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, type })
+      });
+      if (res.ok) {
+        loadAdminData();
+      } else {
+        alert('Failed to unlock slot.');
+      }
+    }
+
+    async function deleteDate(date) {
+      if (!confirm(`Are you sure you want to delete ${date}?`)) return;
+      const res = await fetch('/admin/delete-date', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date })
+      });
+      if (res.ok) {
+        loadAdminData();
+      } else {
+        alert('Failed to delete date.');
+      }
+    }
+
+    async function deleteUser(username) {
+      if (!confirm(`Are you sure you want to delete user "${username}"?`)) return;
+      const res = await fetch('/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      if (res.ok) {
+        loadUsers();
+      } else {
+        alert('Failed to delete user.');
+      }
+    }
+
+    function populateBookingDates(dates) {
+      const select = document.getElementById('adminBookDate');
+      select.innerHTML = '';
+      dates.forEach(entry => {
+        const option = document.createElement('option');
+        option.value = entry.date;
+        option.textContent = entry.date;
+        select.appendChild(option);
+      });
+    }
+
+    window.onload = () => {
+      loadAdminData();
+    };
+  </script>
+</body>
+</html>
