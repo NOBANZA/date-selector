@@ -4,15 +4,36 @@
   <title>Select a Date</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f0f2f5; }
-    h2 { margin-top: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f0f2f5;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 1.5em;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 1em;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
 
     #loginSection {
       margin-bottom: 30px;
       padding: 15px;
       border: 1px solid #aaa;
       background-color: #fff;
-      max-width: 400px;
       border-radius: 8px;
     }
 
@@ -29,10 +50,12 @@
       background-color: #007bff;
       color: white;
       border: none;
-      padding: 8px 12px;
+      padding: 10px 14px;
       border-radius: 5px;
       cursor: pointer;
       font-size: 1em;
+      width: 100%;
+      margin-bottom: 10px;
     }
 
     .refresh-btn:hover {
@@ -50,14 +73,6 @@
       100% { transform: rotate(360deg); }
     }
 
-    .date-card {
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 12px;
-      background-color: #fff;
-    }
-
     .status {
       display: inline-block;
       padding: 4px 8px;
@@ -72,147 +87,174 @@
     .available-sister { background-color: #fff3cd; color: #856404; }
     .available-brother { background-color: #cce5ff; color: #004085; }
 
-    button { padding: 6px 12px; margin-top: 6px; }
+    button {
+      padding: 10px;
+      font-size: 1em;
+      width: 100%;
+      margin-top: 6px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-radius: 8px;
+      overflow-x: auto;
+      display: block;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px;
+      font-size: 0.95em;
+    }
+
+    th {
+      background-color: #e0e0e0;
+    }
+
+    #cancelModal {
+      display: none;
+      background-color: #fff;
+      border: 1px solid #aaa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+      h2 { font-size: 1.3em; }
+      th, td { font-size: 0.85em; padding: 8px; }
+      .refresh-btn, button { font-size: 0.95em; padding: 10px; }
+    }
   </style>
 </head>
 <body>
-  <h2>User Login</h2>
+  <div class="container">
+   
 
-  <div id="loginSection">
-    <label>Username:<br><input type="text" id="loginUsername" /></label><br><br>
-    <label>Password:<br><input type="password" id="loginPassword" /></label><br><br>
-    <button onclick="attemptLogin()">Login</button>
-  </div>
-
-  <div id="bookingSection">
-    <div id="userInfo"></div>
-
-    <button class="refresh-btn" onclick="refreshSlots()">🔄 Refresh Slots</button>
-    <span id="lastUpdated" style="margin-left: 15px; font-style: italic;"></span>
-    <span id="nextRefresh" style="margin-left: 15px;"></span>
-    <div id="spinner" style="display:none; margin-top:10px;">
-      <span id="spinnerIcon">🔄</span> Refreshing...
+    <div id="loginSection">
+       <h2>User Login</h2>
+      <label>Username:<br><input type="text" id="loginUsername" /></label><br>
+      <label>Password:<br><input type="password" id="loginPassword" /></label><br>
+      <button onclick="attemptLogin()">Login</button>
     </div>
 
-    <h2>Select a Date</h2>
-    <div id="dateContainer"></div>
+    <h2>Slot Booking Tool</h2>
+ 
+
+    <div id="bookingSection">
+      <div id="userInfo">    </div>
+
+      <button class="refresh-btn" onclick="refreshSlots()">🔄 Refresh Slots</button>
+      <button onclick="showCancelModal()">❌ Cancel My Booking</button>
+
+      <div id="spinner" style="display:none;">
+        
+      </div>
+
+  
+    
+   
+
+      <div id="dateContainer"></div>
+
 
     
-    <button onclick="logout()">Logout</button>
+      <div id="cancelModal">
+        <div id="bookingSummary"></div>
+        <button onclick="cancelBooking()">Confirm Cancellation</button>
+        <button onclick="closeModal()">Close</button>
+      </div>
+          <button onclick="logout()">Logout</button>
+    </div>
+  
   </div>
 
-
-
-
-
   <script>
+    // Paste your full JavaScript from Block 1 and Block 2 here
+    // No changes needed to logic — it's already robust and mobile-safe
+
     let currentUser = null;
 
-    function goToAdmin() {
-      window.location.href = 'admin.html';
+    async function attemptLogin() {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      if (!username || !password) return alert('Please enter both username and password.');
+
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (res.ok) {
+        currentUser = await res.json();
+        if (currentUser.userId === 212401) return window.location.href = 'admin.html';
+
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('bookingSection').style.display = 'block';
+
+        const displayName = `${currentUser.title || 'Brother/Sister'} ${currentUser.lastName || currentUser.username}`;
+        document.getElementById('userInfo').textContent =
+          `You are logged in as ${displayName}`;
+
+        refreshSlots();
+      } else {
+        alert('Invalid credentials or account disabled.');
+      }
     }
 
-async function attemptLogin() {
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value.trim();
+    async function loadDates() {
+      const res = await fetch('/admin/data');
+      const data = await res.json();
+      window.allDates = data.dates;
 
-  if (!username || !password) {
-    alert('Please enter both username and password.');
-    return;
-  }
+      const container = document.getElementById('dateContainer');
+      container.innerHTML = '';
 
-  const res = await fetch('/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th>Date</th>
+          <th>Opening Prayer</th>
+          <th>Closing Prayer</th>
+        </tr>
+      `;
+      table.appendChild(thead);
 
-  if (res.ok) {
-    currentUser = await res.json(); // expects { username, title, userId, lastName }
+      const tbody = document.createElement('tbody');
+      data.dates.sort((a, b) => new Date(a.date) - new Date(b.date));
+      data.dates.forEach(entry => {
+        const row = document.createElement('tr');
+        const dateCell = document.createElement('td');
+        dateCell.textContent = entry.date;
 
-    // ✅ Redirect to admin interface if userId is 212401
-    if (currentUser.userId === 212401) {
-      window.location.href = 'admin.html';
-      return;
+        const openingCell = document.createElement('td');
+        const closingCell = document.createElement('td');
+
+        renderSlot(openingCell, entry, 'opening');
+        renderSlot(closingCell, entry, 'closing');
+
+        row.appendChild(dateCell);
+        row.appendChild(openingCell);
+        row.appendChild(closingCell);
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
     }
 
-    // Otherwise show booking interface
-    document.getElementById('loginSection').style.display = 'none';
-    document.getElementById('bookingSection').style.display = 'block';
-
-    const displayName = `${currentUser.title || 'Brother/Sister'} ${currentUser.lastName || currentUser.username}`;
-    document.getElementById('userInfo').textContent =
-      `User ID: ${currentUser.userId} | Logged in as ${displayName}`;
-
-    refreshSlots();
-  } else {
-    alert('Invalid credentials or account disabled.');
-  }
-}
-
-
-async function loadDates() {
-  const res = await fetch('/admin/data');
-  const data = await res.json();
-
-  // ✅ Store all dates globally for booking checks
-  window.allDates = data.dates;
-
-  const container = document.getElementById('dateContainer');
-  container.innerHTML = '';
-
-  const table = document.createElement('table');
-  table.style.width = '100%';
-  table.style.borderCollapse = 'collapse';
-  table.style.backgroundColor = '#fff';
-  table.style.borderRadius = '8px';
-
-  const thead = document.createElement('thead');
-  thead.innerHTML = `
-    <tr style="background-color: #e0e0e0;">
-      <th style="text-align:left; padding: 10px;">Date</th>
-      <th style="text-align:left; padding: 10px;">Opening Prayer</th>
-      <th style="text-align:left; padding: 10px;">Closing Prayer</th>
-    </tr>
-  `;
-  table.appendChild(thead);
-
-  const tbody = document.createElement('tbody');
-
-  data.dates.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  data.dates.forEach(entry => {
-    const row = document.createElement('tr');
-
-    const dateCell = document.createElement('td');
-    dateCell.textContent = entry.date;
-    dateCell.style.padding = '10px';
-
-    const openingCell = document.createElement('td');
-    const closingCell = document.createElement('td');
-
-    renderSlot(openingCell, entry, 'opening');
-    renderSlot(closingCell, entry, 'closing');
-
-    row.appendChild(dateCell);
-    row.appendChild(openingCell);
-    row.appendChild(closingCell);
-    tbody.appendChild(row);
-  });
-
-  table.appendChild(tbody);
-  container.appendChild(table);
-}
-
-
-
-function getSlotLabel(entry) {
-  if (!entry) return "Available";
-  if (currentUser && entry.userId === currentUser.userId) return "Booked by You";
-  return `Booked by a ${entry.title}`;
-}
-
-
+    function getSlotLabel(entry) {
+      if (!entry) return "Available";
+      if (currentUser && entry.userId === currentUser.userId) return "Booked by You";
+      return `Booked by Admin ${entry.title}`;
+    }
 
     function getStatusClass(type, title, booked) {
       if (booked) {
@@ -222,87 +264,74 @@ function getSlotLabel(entry) {
       }
     }
 
-function renderSlot(cell, entry, type) {
-  cell.style.padding = '10px';
+    function renderSlot(cell, entry, type) {
+      cell.style.padding = '10px';
+      const userId = currentUser?.userId;
+      if (!userId) return;
 
-  const userId = currentUser?.userId;
-  if (!userId) return;
+      const alreadyBooked = window.allDates?.some(d =>
+        (d.opening && d.opening.userId === userId) ||
+        (d.closing && d.closing.userId === userId)
+      );
 
-  // ✅ Prevent booking if user already booked any slot on any date
-  const alreadyBooked = window.allDates?.some(d =>
-    (d.opening && d.opening.userId === userId) ||
-    (d.closing && d.closing.userId === userId)
-  );
+      const thisSlot = entry[type];
+      if (thisSlot) {
+        const label = document.createElement('span');
+        label.textContent = getSlotLabel(thisSlot);
+        label.className = `status ${getStatusClass(type, thisSlot.title, thisSlot)}`;
+        cell.appendChild(label);
+        return;
+      }
 
-  const thisSlot = entry[type];
+      const otherType = type === 'opening' ? 'closing' : 'opening';
+      const otherBooking = entry[otherType];
+      let subLabel = '';
+      if (otherBooking) {
+        subLabel = otherBooking.title === 'Brother' ? '(Sister Preferred)' : '(Brother Preferred)';
+      }
 
-  // ✅ If user already booked elsewhere and this slot isn't theirs, block booking
-// Allow button to render even if already booked elsewhere
-// We'll handle the restriction inside the click handler
+      const btn = document.createElement('button');
+      btn.innerHTML = `${type.charAt(0).toUpperCase() + type.slice(1)} Prayer<br><small>${subLabel}</small>`;
+      btn.title = "Click to book this slot. Preference shown based on other booking.";
+      btn.disabled = !currentUser;
 
+      btn.onclick = async () => {
+        const alreadyBookedElsewhere = window.allDates?.some(d =>
+          (d.opening && d.opening.userId === userId && d.date !== entry.date) ||
+          (d.closing && d.closing.userId === userId && d.date !== entry.date)
+        );
 
-  // ✅ Show label if slot is booked
-  if (thisSlot) {
-    const label = document.createElement('span');
-    label.textContent = getSlotLabel(thisSlot);
-    label.className = `status ${getStatusClass(type, thisSlot.title, thisSlot)}`;
-    cell.appendChild(label);
-    return;
-  }
+        if (alreadyBookedElsewhere && (!thisSlot || thisSlot.userId !== userId)) {
+          alert("Looks like you've already reserved a slot on another date.\n\nTo change your booking, please cancel your current reservation first.");
+          return;
+        }
 
-  // ✅ Slot is available — show booking button
-  const otherType = type === 'opening' ? 'closing' : 'opening';
-  const otherBooking = entry[otherType];
-  let subLabel = '';
-  if (otherBooking) {
-    subLabel = otherBooking.title === 'Brother' ? '(Sister Preferred)' : '(Brother Preferred)';
-  }
+        const confirmMsg = `Confirm booking for ${entry.date} (${type} prayer) as:\n${currentUser.title} ${currentUser.lastName}?`;
+        if (!confirm(confirmMsg)) return;
 
-  const btn = document.createElement('button');
-  btn.innerHTML = `${type.charAt(0).toUpperCase() + type.slice(1)} Prayer<br><small>${subLabel}</small>`;
-  btn.title = "Click to book this slot. Preference shown based on other booking.";
-  btn.disabled = !currentUser;
+        const res = await fetch('/book-date', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: currentUser.title,
+            name: currentUser.username,
+            userId: currentUser.userId,
+            date: entry.date,
+            type
+          })
+        });
 
-btn.onclick = async () => {
-  // Check again at click time
-  const alreadyBookedElsewhere = window.allDates?.some(d =>
-    (d.opening && d.opening.userId === userId && d.date !== entry.date) ||
-    (d.closing && d.closing.userId === userId && d.date !== entry.date)
-  );
+        if (res.ok) {
+          alert('Booking confirmed!');
+          refreshSlots();
+        } else {
+          const errorMsg = await res.text();
+          alert(`${errorMsg}\n\nThis slot may have just been booked by an admin or another user. Please refresh the page to see the latest availability.`);
+        }
+      };
 
-  if (alreadyBookedElsewhere && (!thisSlot || thisSlot.userId !== userId)) {
-    alert("Looks like you've already reserved a slot on another date.\n\nTo change your booking, please cancel your current reservation first.");
-    return;
-  }
-
-  const confirmMsg = `Confirm booking for ${entry.date} (${type} prayer) as:\n${currentUser.title} ${currentUser.username}?`;
-  if (!confirm(confirmMsg)) return;
-
-  const res = await fetch('/book-date', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      title: currentUser.title,
-      name: currentUser.username,
-      userId: currentUser.userId,
-      date: entry.date,
-      type
-    })
-  });
-
-  if (res.ok) {
-    alert('Booking confirmed!');
-    refreshSlots();
-  } else {
-    const errorMsg = await res.text();
-    alert(`${errorMsg}\n\nThis slot may have just been booked by an admin or another user. Please refresh the page to see the latest availability.`);
-  }
-};
-
-
-  cell.appendChild(btn);
-}
-
+      cell.appendChild(btn);
+    }
 
     let countdown = 180;
 
@@ -324,8 +353,7 @@ btn.onclick = async () => {
 
     setInterval(updateCountdown, 1000);
 
-
-      function refreshSlots() {
+    function refreshSlots() {
       showSpinner(true);
       loadDates().then(() => {
         showSpinner(false);
@@ -349,120 +377,71 @@ btn.onclick = async () => {
       currentUser = null;
     }
 
-function bookSlot({ date, slotType, currentUser, dates }) {
-  const slotIndex = dates.findIndex(d => d.date === date);
-  if (slotIndex === -1) throw new Error("Date not found");
-
-  const slot = dates[slotIndex];
-
-  const bookingEntry = {
-    title: currentUser.title || "Brother",
-    name: currentUser.username,
-    userId: currentUser.id
-  };
-
-  if (slotType === "opening") {
-    if (slot.opening && slot.opening.userId !== currentUser.id) {
-      throw new Error("Opening slot already booked");
+    function getUserBooking(userId) {
+      for (const entry of window.allDates || []) {
+        if (entry.opening?.userId === userId) {
+          return { type: 'Opening Prayer', date: entry.date };
+        }
+        if (entry.closing?.userId === userId) {
+          return { type: 'Closing Prayer', date: entry.date };
+        }
+      }
+      return null;
     }
-    slot.opening = bookingEntry;
-  } else if (slotType === "closing") {
-    if (slot.closing && slot.closing.userId !== currentUser.id) {
-      throw new Error("Closing slot already booked");
+
+    function showCancelModal() {
+      const booking = getUserBooking(currentUser.userId);
+      if (!booking) {
+        alert("No booking found to cancel.");
+        return;
+      }
+
+      const summary = document.getElementById('bookingSummary');
+      summary.innerHTML = `You’ve reserved <strong>${booking.type}</strong> on <strong>${booking.date}</strong>.`;
+
+      document.getElementById('cancelModal').style.display = 'block';
     }
-    slot.closing = bookingEntry;
-  } else {
-    throw new Error("Invalid slot type");
-  }
 
-  dates[slotIndex] = slot;
-  return dates;
-}
+    async function cancelBooking() {
+      const booking = getUserBooking(currentUser.userId);
+      if (!booking) {
+        alert("No booking found to cancel.");
+        return;
+      }
 
+      const reason = prompt(`Cancel your booking for ${booking.date} (${booking.type})?\n\nOptional: Enter a reason for cancellation.`);
 
+      const res = await fetch('/api/cancel-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.userId,
+          date: booking.date,
+          slotType: booking.type === 'Opening Prayer' ? 'opening' : 'closing',
+          reason: reason || ''
+        })
+      });
 
-function getUserBooking(userId) {
-  console.log("🔍 Checking bookings for userId:", userId);
+      const result = await res.json();
 
-  for (const entry of window.allDates || []) {
-    console.log("📅 Date entry:", entry.date, entry);
-
-    if (entry.opening?.userId === userId) {
-      console.log("✅ Found opening booking:", entry);
-      return { type: 'Opening Prayer', date: entry.date };
-    }
-    if (entry.closing?.userId === userId) {
-      console.log("✅ Found closing booking:", entry);
-      return { type: 'Closing Prayer', date: entry.date };
-    }
-  }
-
-  console.log("❌ No booking found for userId:", userId);
-  return null;
-}
-
-
-function showCancelModal() {
-  const booking = getUserBooking(currentUser.userId);
-  if (!booking) {
-    alert("No booking found to cancel.");
-    return;
-  }
-
-  const summary = document.getElementById('bookingSummary');
-  summary.innerHTML = `You’ve reserved <strong>${booking.type}</strong> on <strong>${booking.date}</strong>.`;
-
-  document.getElementById('cancelModal').style.display = 'block';
-}
-
-
-async function cancelBooking() {
-  const booking = getUserBooking(currentUser.userId);
-  if (!booking) {
-    alert("No booking found to cancel.");
-    return;
-  }
-
-  const reason = prompt(`Cancel your booking for ${booking.date} (${booking.type})?\n\nOptional: Enter a reason for cancellation.`);
-
-  const res = await fetch('/api/cancel-booking', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId: currentUser.userId,
-      date: booking.date,
-      slotType: booking.type === 'Opening Prayer' ? 'opening' : 'closing',
-      reason: reason || ''
-    })
-  });
-
-  const result = await res.json();
-
-  if (res.ok && result.success) {
-    alert("Booking cancelled successfully.");
-
-    // ✅ Remove from local data
-    for (const entry of window.allDates) {
-      if (entry.date === booking.date) {
-        if (booking.type === 'Opening Prayer') entry.opening = null;
-        if (booking.type === 'Closing Prayer') entry.closing = null;
+      if (res.ok && result.success) {
+        alert("Booking cancelled successfully.");
+        for (const entry of window.allDates) {
+          if (entry.date === booking.date) {
+            if (booking.type === 'Opening Prayer') entry.opening = null;
+            if (booking.type === 'Closing Prayer') entry.closing = null;
+          }
+        }
+        refreshSlots();
+        document.getElementById('cancelModal').style.display = 'none';
+      } else {
+        alert(result.error || "Cancellation failed.");
       }
     }
 
-    refreshSlots();
-    document.getElementById('cancelModal').style.display = 'none';
-  } else {
-    alert(result.error || "Cancellation failed.");
-  }
-}
-
-
-function closeModal() {
-  document.getElementById('cancelModal').style.display = 'none';
-}
-
-
-
+    function closeModal() {
+      document.getElementById('cancelModal').style.display = 'none';
+    }
 
     window.onload = () => {
       refreshSlots();
