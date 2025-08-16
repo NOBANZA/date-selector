@@ -1,3 +1,4 @@
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -5,7 +6,15 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
+
 const DATA_FILE = './data.json';
+
+//const fs = require('fs');
+//const path = require('path');
+
+//const mongoose = require('mongoose');
+
+//mongoose.connect('mongodb://localhost:27017/date-selector');
 
 function readData() {
   return JSON.parse(fs.readFileSync(DATA_FILE));
@@ -244,39 +253,144 @@ app.post('/admin/book-slot', (req, res) => {
 
 
 // POST /api/cancel-booking
-app.post('/api/cancel-booking', async (req, res) => {
+app.post('/api/cancel-booking', (req, res) => {
   const { userId, date, slotType, reason } = req.body;
+  const data = readData();
+  const entry = data.dates.find(d => d.date === date);
 
-  try {
-    // Fetch booking
-    const booking = await db.getBooking(date, slotType);
-
-    // Validate ownership
-    if (booking.userId !== userId) {
-      return res.status(403).json({ error: 'You can only cancel your own booking.' });
-    }
-
-    // Optional: Check time-based cancellation lock
-    const now = new Date();
-    const bookingDate = new Date(date);
-    const hoursUntil = (bookingDate - now) / (1000 * 60 * 60);
-    if (hoursUntil < 24) {
-      return res.status(400).json({ error: 'Cancellations must be made at least 24 hours in advance.' });
-    }
-
-    // Cancel booking
-    await db.cancelBooking(date, slotType);
-
-    // Log reason
-    await db.logCancellation({ userId, date, slotType, reason, timestamp: now });
-
-    res.json({ success: true, message: 'Booking cancelled successfully.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error during cancellation.' });
+  if (!entry || !entry[slotType]) {
+    return res.status(404).json({ error: 'Booking not found.' });
   }
+
+  if (entry[slotType].userId !== userId) {
+    return res.status(403).json({ error: 'You can only cancel your own booking.' });
+  }
+
+  const now = new Date();
+  const bookingDate = new Date(date);
+  const hoursUntil = (bookingDate - now) / (1000 * 60 * 60);
+  if (hoursUntil < 24) {
+    return res.status(400).json({ error: 'Cancellations must be made at least 24 hours in advance.' });
+  }
+
+  // Cancel the booking
+  delete entry[slotType];
+
+  // Log cancellation
+  data.cancellations = data.cancellations || [];
+  data.cancellations.push({
+    userId,
+    date,
+    slotType,
+    reason: reason || '',
+    timestamp: now.toISOString()
+  });
+
+  writeData(data);
+
+  res.json({ success: true, message: 'Booking cancelled successfully.' });
 });
 
+
+app.post('/api/admin-login', (req, res) => {
+  const { username, password } = req.body;
+  const data = readData();
+  const admin = data.users.find(u => u.username === username && u.password === password && u.enabled);
+
+  if (!admin || admin.username !== 'admin') {
+    return res.status(403).json({ error: 'Invalid credentials.' });
+  }
+
+  const token = Buffer.from(`${admin.id}:${Date.now()}`).toString('base64');
+  res.json({ success: true, token });
+});
+
+
+/*
+// routes/cancellations.js
+app.get('/api/cancellations', async (req, res) => {
+  const { userId, startDate, endDate } = req.query;
+  const query = {};
+
+  if (userId) query.userId = userId;
+  if (startDate && endDate) {
+    query.timestamp = {
+      $gte: new Date(startDate),
+      $lte: new Date(endDate)
+    };
+  }
+
+  const logs = await Cancellation.find(query).sort({ timestamp: -1 });
+  res.json(logs);
+});
+
+
+app.get('/api/cancellations/counts', async (req, res) => {
+  const counts = await Cancellation.aggregate([
+    { $group: { _id: "$userId", count: { $sum: 1 } } },
+    { $sort: { count: -1 } }
+  ]);
+  res.json(counts);
+});
+*/
+
+app.get('/admin/cancellation-counts', (req, res) => {
+  const data = readData();
+  const cancellations = data.cancellations || [];
+
+  const counts = {};
+
+  for (const entry of cancellations) {
+    counts[entry.userId] = (counts[entry.userId] || 0) + 1;
+  }
+
+  res.json(counts);
+});
+
+
+app.post('/cancel', (req, res) => {
+  const cancellationData = {
+    slotId: req.body.slotId || 'test-slot',
+    cancelledBy: req.body.userId || 'admin001',
+    timestamp: new Date().toISOString()
+  };
+
+  const filePath = path.join(__dirname, 'data.json');
+  let existingData = [];
+
+  try {
+    const raw = fs.readFileSync(filePath);
+    existingData = JSON.parse(raw);
+  } catch (err) {
+    console.log('No existing data or failed to read:', err);
+  }
+
+  existingData.push(cancellationData);
+
+  fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2));
+
+  res.json({ success: true, logged: cancellationData });
+});
+
+app.get('/admin/cancellations', (req, res) => {
+  const { userId, startDate, endDate } = req.query;
+  const data = readData();
+  let cancellations = data.cancellations || [];
+
+  if (userId) {
+    cancellations = cancellations.filter(c => c.userId === userId);
+  }
+
+  if (startDate) {
+    cancellations = cancellations.filter(c => c.date >= startDate);
+  }
+
+  if (endDate) {
+    cancellations = cancellations.filter(c => c.date <= endDate);
+  }
+
+  res.json(cancellations);
+});
 
 
 
