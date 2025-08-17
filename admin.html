@@ -1,451 +1,543 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Select a Date</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f0f2f5;
-      margin: 0;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: auto;
-    }
-
-    h2 {
-      margin-top: 0;
-      font-size: 1.5em;
-    }
-
-    input[type="text"], input[type="password"] {
-      width: 100%;
-      padding: 10px;
-      font-size: 1em;
-      box-sizing: border-box;
-      margin-bottom: 10px;
-    }
-
-    #loginSection {
-      margin-bottom: 30px;
-      padding: 15px;
-      border: 1px solid #aaa;
-      background-color: #fff;
-      border-radius: 8px;
-    }
-
-    #bookingSection { display: none; }
-
-    #userInfo {
-      margin-bottom: 20px;
-      font-weight: bold;
-      font-size: 1.1em;
-      color: #333;
-    }
-
-    .refresh-btn {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 10px 14px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 1em;
-      width: 100%;
-      margin-bottom: 10px;
-    }
-
-    .refresh-btn:hover {
-      background-color: #0056b3;
-    }
-
-    #spinnerIcon {
-      display: inline-block;
-      animation: spin 1s linear infinite;
-      font-size: 1.2em;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .status {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-weight: bold;
-      font-size: 0.9em;
-      margin-top: 4px;
-    }
-
-    .booked-brother { background-color: #f8d7da; color: #721c24; }
-    .booked-sister { background-color: #d4edda; color: #155724; }
-    .available-sister { background-color: #fff3cd; color: #856404; }
-    .available-brother { background-color: #cce5ff; color: #004085; }
-
-    button {
-      padding: 10px;
-      font-size: 1em;
-      width: 100%;
-      margin-top: 6px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background-color: #fff;
-      border-radius: 8px;
-      overflow-x: auto;
-      display: block;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 10px;
-      font-size: 0.95em;
-    }
-
-    th {
-      background-color: #e0e0e0;
-    }
-
-    #cancelModal {
-      display: none;
-      background-color: #fff;
-      border: 1px solid #aaa;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 20px;
-    }
-
-    @media (max-width: 600px) {
-      h2 { font-size: 1.3em; }
-      th, td { font-size: 0.85em; padding: 8px; }
-      .refresh-btn, button { font-size: 0.95em; padding: 10px; }
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; }
+    h1, h2 { color: #333; }
+    input, select, button { padding: 8px; margin: 5px 0 15px; font-size: 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    th { background-color: #eee; }
+    .section { margin-bottom: 30px; }
+    .disabled-option { color: #999; }
   </style>
 </head>
 <body>
-  <div class="container">
-   
-
-    <div id="loginSection">
-       <h2>User Login</h2>
-      <label>Username:<br><input type="text" id="loginUsername" /></label><br>
-      <label>Password:<br><input type="password" id="loginPassword" /></label><br>
-      <button onclick="attemptLogin()">Login</button>
-    </div>
-
-    <h2>Slot Booking Tool</h2>
- 
-
-    <div id="bookingSection">
-      <div id="userInfo">    </div>
-
-      <button class="refresh-btn" onclick="refreshSlots()">🔄 Refresh Slots</button>
-      <button onclick="showCancelModal()">❌ Cancel My Booking</button>
-
-      <div id="spinner" style="display:none;">
-        
-      </div>
-
-  
-    
-   
-
-      <div id="dateContainer"></div>
+  <h1>Admin Panel</h1>
 
 
-    
-      <div id="cancelModal">
-        <div id="bookingSummary"></div>
-        <button onclick="cancelBooking()">Confirm Cancellation</button>
-        <button onclick="closeModal()">Close</button>
-      </div>
-          <button onclick="logout()">Logout</button>
-    </div>
-  
+
+  <!-- User Management -->
+  <div class="section">
+    <h2>User Access Control</h2> <button onclick="loadAdminData()" style="margin-top: 10px;">🔄 Refresh Bookings & Users</button>
+      <button onclick="logout()" style="position: absolute; top: 20px; right: 20px; padding: 8px 12px; background: #cc0000; color: white; border: none; border-radius: 4px;">
+  🔓 Logout
+</button>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Username</th><th>Password</th><th>Title</th><th>First Name</th><th>Last Name</th><th>Enabled</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="userTable"></tbody>
+    </table>
+
+    <h3>Add New User</h3>
+    <label>Username: <input type="text" id="newUser" /></label>
+    <label>Password: <input type="text" id="newPass" /></label>
+    <label>Title:
+      <select id="newTitle">
+        <option value="Brother">Brother</option>
+        <option value="Sister">Sister</option>
+      </select>
+    </label>
+    <label>First Name: <input type="text" id="newFirst" /></label>
+    <label>Last Name: <input type="text" id="newLast" /></label>
+    <button onclick="addUser()">Add User</button>
   </div>
 
+  <!-- Date Management -->
+  <div class="section">
+    <button onclick="loadAdminData()" style="margin-top: 10px;">🔄 Refresh Bookings & Users</button>
+    <h2>Add New Date</h2>
+<label for="adminSundaySelect">Select a Sunday:</label>
+<select id="adminSundaySelect"></select>
+    <button onclick="addDate()">Add Date</button>
+    <button onclick="populateAdminSundayDropdown()" style="margin-top: 10px;">🔄 Refresh Sunday List</button>
+  </div>
+
+  <!-- Booking Table -->
+  <div class="section">
+    <h2>All Bookings</h2>
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Opening Prayer</th><th>Closing Prayer</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="adminTable"></tbody>
+    </table>
+  </div>
+
+  <!-- Admin Booking -->
+  <div class="section">
+    <h2>Book a Slot for Someone</h2>
+    <label>User:
+      <select id="adminUserSelect" onchange="fillUserDetails()"></select>
+    </label>
+    <label>Date:
+      <select id="adminBookDate"></select>
+    </label>
+    <label>Slot:
+      <select id="adminBookSlot">
+        <option value="opening">Opening Prayer</option>
+        <option value="closing">Closing Prayer</option>
+      </select>
+    </label>
+    <button onclick="adminBookSlot()">Book Slot</button>
+  </div>
+
+   <!-- Cancellation Log -->
+
+<h2>Cancellation Log</h2>
+<button onclick="loadAdminData()" style="margin-top: 10px;">🔄 Refresh Bookings & Users</button>
+
+
+
+<!-- Admin Filter Controls -->
+<div id="adminFilters">
+  <label>User ID: <input type="text" id="userFilter" /></label>
+  <label>Start Date: <input type="date" id="startDate" /></label>
+  <label>End Date: <input type="date" id="endDate" /></label>
+  <button onclick="applyFilters()">Apply Filters</button>
+  <button onclick="exportCancellations()">Export CSV</button>
+</div>
+
+<!-- Cancellation Summary -->
+<div id="cancellationCount"></div>
+<div id="cancellationList"></div>
+
+
+
+<div id="countsTable"></div>
+<table id="cancellationTable" border="1" cellpadding="6" style="border-collapse: collapse; width: 100%;">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Slot Type</th>
+      <th>User</th>
+      <th>Reason</th>
+      <th>Timestamp</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+
+  <button onclick="goToUser()">Return to User Interface</button>
+
   <script>
-    // Paste your full JavaScript from Block 1 and Block 2 here
-    // No changes needed to logic — it's already robust and mobile-safe
+   
+const token = localStorage.getItem('adminToken');
+const expiry = parseInt(localStorage.getItem('adminTokenExpiry'), 10);
 
-    let currentUser = null;
+if (!token || !expiry || Date.now() > expiry) {
+  alert("Session expired. Please log in again.");
+  localStorage.removeItem('adminToken');
+  localStorage.removeItem('adminTokenExpiry');
+  window.location.href = 'admin-login.html';
+}
 
-    async function attemptLogin() {
-      const username = document.getElementById('loginUsername').value.trim();
-      const password = document.getElementById('loginPassword').value.trim();
-      if (!username || !password) return alert('Please enter both username and password.');
 
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+  // Logout function
+function logout() {
+  const confirmLogout = confirm("Are you sure you want to log out?");
+  if (!confirmLogout) return;
 
-      if (res.ok) {
-        currentUser = await res.json();
-        if (currentUser.userId === 212401) return window.location.href = 'admin.html';
+  localStorage.removeItem('adminToken');
+  localStorage.removeItem('adminTokenExpiry');
+  alert("You’ve been logged out.");
+  window.location.href = 'admin-login.html';
+}
 
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('bookingSection').style.display = 'block';
 
-        const displayName = `${currentUser.title || 'Brother/Sister'} ${currentUser.lastName || currentUser.username}`;
-        document.getElementById('userInfo').textContent =
-          `You are logged in as ${displayName}`;
+    let userMap = {};
+    let bookedUserIds = new Set();
 
-        refreshSlots();
-      } else {
-        alert('Invalid credentials or account disabled.');
-      }
+    function goToUser() {
+      window.location.href = 'index.html';
     }
 
-    async function loadDates() {
+    async function loadAdminData() {
       const res = await fetch('/admin/data');
       const data = await res.json();
-      window.allDates = data.dates;
+      const table = document.getElementById('adminTable');
+      table.innerHTML = '';
 
-      const container = document.getElementById('dateContainer');
-      container.innerHTML = '';
-
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      thead.innerHTML = `
-        <tr>
-          <th>Date</th>
-          <th>Opening Prayer</th>
-          <th>Closing Prayer</th>
-        </tr>
-      `;
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      data.dates.sort((a, b) => new Date(a.date) - new Date(b.date));
+      bookedUserIds.clear();
       data.dates.forEach(entry => {
+        if (entry.opening?.userId) bookedUserIds.add(entry.opening.userId);
+        if (entry.closing?.userId) bookedUserIds.add(entry.closing.userId);
+
         const row = document.createElement('tr');
-        const dateCell = document.createElement('td');
-        dateCell.textContent = entry.date;
+        const opening = entry.opening ? `${entry.opening.title} ${entry.opening.name}` : '—';
+        const closing = entry.closing ? `${entry.closing.title} ${entry.closing.name}` : '—';
 
-        const openingCell = document.createElement('td');
-        const closingCell = document.createElement('td');
-
-        renderSlot(openingCell, entry, 'opening');
-        renderSlot(closingCell, entry, 'closing');
-
-        row.appendChild(dateCell);
-        row.appendChild(openingCell);
-        row.appendChild(closingCell);
-        tbody.appendChild(row);
+        row.innerHTML = `
+          <td>${formatMMDDYY(new Date(entry.date))}</td>
+          <td>${opening}</td>
+          <td>${closing}</td>
+          <td>
+            ${entry.opening ? `<button onclick="unlock('${entry.date}', 'opening')">Unlock Opening</button>` : ''}
+            ${entry.closing ? `<button onclick="unlock('${entry.date}', 'closing')">Unlock Closing</button>` : ''}
+            <button onclick="deleteDate('${entry.date}')">Delete Date</button>
+          </td>
+        `;
+        table.appendChild(row);
       });
 
-      table.appendChild(tbody);
-      container.appendChild(table);
+      populateBookingDates(data.dates);
+      loadUsers(); // refresh dropdown after bookings
     }
 
-    function getSlotLabel(entry) {
-      if (!entry) return "Available";
-      if (currentUser && entry.userId === currentUser.userId) return "Booked by You";
-      return `Booked by Admin ${entry.title}`;
-    }
+    async function loadUsers() {
+      const res = await fetch('/admin/users');
+      const users = await res.json();
+      const select = document.getElementById('adminUserSelect');
+      select.innerHTML = '';
+      userMap = {};
 
-    function getStatusClass(type, title, booked) {
-      if (booked) {
-        return booked.title === 'Brother' ? 'booked-brother' : 'booked-sister';
-      } else {
-        return type === 'opening' && title === 'Brother' ? 'available-brother' : 'available-sister';
-      }
-    }
-
-    function renderSlot(cell, entry, type) {
-      cell.style.padding = '10px';
-      const userId = currentUser?.userId;
-      if (!userId) return;
-
-      const alreadyBooked = window.allDates?.some(d =>
-        (d.opening && d.opening.userId === userId) ||
-        (d.closing && d.closing.userId === userId)
-      );
-
-      const thisSlot = entry[type];
-      if (thisSlot) {
-        const label = document.createElement('span');
-        label.textContent = getSlotLabel(thisSlot);
-        label.className = `status ${getStatusClass(type, thisSlot.title, thisSlot)}`;
-        cell.appendChild(label);
-        return;
-      }
-
-      const otherType = type === 'opening' ? 'closing' : 'opening';
-      const otherBooking = entry[otherType];
-      let subLabel = '';
-      if (otherBooking) {
-        subLabel = otherBooking.title === 'Brother' ? '(Sister Preferred)' : '(Brother Preferred)';
-      }
-
-      const btn = document.createElement('button');
-      btn.innerHTML = `${type.charAt(0).toUpperCase() + type.slice(1)} Prayer<br><small>${subLabel}</small>`;
-      btn.title = "Click to book this slot. Preference shown based on other booking.";
-      btn.disabled = !currentUser;
-
-      btn.onclick = async () => {
-        const alreadyBookedElsewhere = window.allDates?.some(d =>
-          (d.opening && d.opening.userId === userId && d.date !== entry.date) ||
-          (d.closing && d.closing.userId === userId && d.date !== entry.date)
-        );
-
-        if (alreadyBookedElsewhere && (!thisSlot || thisSlot.userId !== userId)) {
-          alert("Looks like you've already reserved a slot on another date.\n\nTo change your booking, please cancel your current reservation first.");
-          return;
+      users.forEach(user => {
+        const label = `${user.title || 'Brother'} ${user.lastName || user.username}`;
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = `${label} (${user.id})`;
+        if (bookedUserIds.has(user.id)) {
+          option.disabled = true;
+          option.className = 'disabled-option';
+          option.textContent += ' — Already Booked';
         }
+        select.appendChild(option);
+        userMap[user.id] = user;
+      });
 
-        const confirmMsg = `Confirm booking for ${entry.date} (${type} prayer) as:\n${currentUser.title} ${currentUser.lastName}?`;
-        if (!confirm(confirmMsg)) return;
-
-        const res = await fetch('/book-date', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: currentUser.title,
-            name: currentUser.username,
-            userId: currentUser.userId,
-            date: entry.date,
-            type
-          })
-        });
-
-        if (res.ok) {
-          alert('Booking confirmed!');
-          refreshSlots();
-        } else {
-          const errorMsg = await res.text();
-          alert(`${errorMsg}\n\nThis slot may have just been booked by an admin or another user. Please refresh the page to see the latest availability.`);
-        }
-      };
-
-      cell.appendChild(btn);
-    }
-
-    let countdown = 180;
-
-    function showSpinner(show) {
-      document.getElementById('spinner').style.display = show ? 'block' : 'none';
-    }
-
-    function updateTimestamp() {
-      const now = new Date();
-      const formatted = now.toLocaleString();
-      document.getElementById('lastUpdated').textContent = `Last updated: ${formatted}`;
-    }
-
-    function updateCountdown() {
-      document.getElementById('nextRefresh').textContent = `Next refresh in ${countdown}s`;
-      countdown--;
-      if (countdown < 0) countdown = 180;
-    }
-
-    setInterval(updateCountdown, 1000);
-
-    function refreshSlots() {
-      showSpinner(true);
-      loadDates().then(() => {
-        showSpinner(false);
-        updateTimestamp();
-        countdown = 180;
+      const table = document.getElementById('userTable');
+      table.innerHTML = '';
+      users.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${user.id}</td>
+          <td>${user.username}</td>
+          <td>${user.password}</td>
+          <td>${user.title || '—'}</td>
+          <td>${user.firstName || '—'}</td>
+          <td>${user.lastName || '—'}</td>
+          <td>${user.enabled ? 'Enabled' : 'Disabled'}</td>
+          <td>
+            <button onclick="toggleUser('${user.username}')">${user.enabled ? 'Disable' : 'Enable'}</button>
+            <button onclick="deleteUser('${user.username}')">Delete</button>
+          </td>
+        `;
+        table.appendChild(row);
       });
     }
 
-    setInterval(() => {
-      if (document.getElementById('bookingSection').style.display === 'block') {
-        refreshSlots();
+    function fillUserDetails() {
+      const userId = document.getElementById('adminUserSelect').value;
+      const user = userMap[userId];
+      if (user) {
+        console.log(`Selected: ${user.title} ${user.lastName || user.username}`);
       }
-    }, 180000); // 3 minutes
-
-    function logout() {
-      document.getElementById('bookingSection').style.display = 'none';
-      document.getElementById('loginSection').style.display = 'block';
-      document.getElementById('loginUsername').value = '';
-      document.getElementById('loginPassword').value = '';
-      document.getElementById('userInfo').textContent = '';
-      currentUser = null;
     }
 
-    function getUserBooking(userId) {
-      for (const entry of window.allDates || []) {
-        if (entry.opening?.userId === userId) {
-          return { type: 'Opening Prayer', date: entry.date };
-        }
-        if (entry.closing?.userId === userId) {
-          return { type: 'Closing Prayer', date: entry.date };
-        }
-      }
-      return null;
-    }
+    async function adminBookSlot() {
+      const userId = document.getElementById('adminUserSelect').value;
+      const date = document.getElementById('adminBookDate').value;
+      const slot = document.getElementById('adminBookSlot').value;
 
-    function showCancelModal() {
-      const booking = getUserBooking(currentUser.userId);
-      if (!booking) {
-        alert("No booking found to cancel.");
-        return;
+      const user = userMap[userId];
+      if (!user || !date || !slot) {
+        return alert('Please select all fields.');
       }
 
-      const summary = document.getElementById('bookingSummary');
-      summary.innerHTML = `You’ve reserved <strong>${booking.type}</strong> on <strong>${booking.date}</strong>.`;
-
-      document.getElementById('cancelModal').style.display = 'block';
-    }
-
-    async function cancelBooking() {
-      const booking = getUserBooking(currentUser.userId);
-      if (!booking) {
-        alert("No booking found to cancel.");
-        return;
-      }
-
-      const reason = prompt(`Cancel your booking for ${booking.date} (${booking.type})?\n\nOptional: Enter a reason for cancellation.`);
-
-      const res = await fetch('/api/cancel-booking', {
+      const res = await fetch('/admin/book-slot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUser.userId,
-          date: booking.date,
-          slotType: booking.type === 'Opening Prayer' ? 'opening' : 'closing',
-          reason: reason || ''
+          date,
+          slot,
+          userId: user.id,
+          title: user.title,
+          name: user.lastName || user.username
         })
       });
 
-      const result = await res.json();
-
-      if (res.ok && result.success) {
-        alert("Booking cancelled successfully.");
-        for (const entry of window.allDates) {
-          if (entry.date === booking.date) {
-            if (booking.type === 'Opening Prayer') entry.opening = null;
-            if (booking.type === 'Closing Prayer') entry.closing = null;
-          }
-        }
-        refreshSlots();
-        document.getElementById('cancelModal').style.display = 'none';
+      if (res.ok) {
+        loadAdminData();
       } else {
-        alert(result.error || "Cancellation failed.");
+        const error = await res.text();
+        alert(`Failed to book slot.\n\n${error}`);
       }
     }
 
-    function closeModal() {
-      document.getElementById('cancelModal').style.display = 'none';
+    async function addUser() {
+      const username = document.getElementById('newUser').value.trim();
+      const password = document.getElementById('newPass').value.trim();
+      const title = document.getElementById('newTitle').value;
+      const firstName = document.getElementById('newFirst').value.trim();
+      const lastName = document.getElementById('newLast').value.trim();
+
+      if (!username || !password || !firstName || !lastName) {
+        return alert('Please fill in all required fields.');
+      }
+
+      await fetch('/admin/add-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, title, firstName, lastName })
+      });
+      loadUsers();
     }
 
+
+async function addDate() {
+  const selectedDate = document.getElementById('adminSundaySelect').value;
+  if (!selectedDate) return alert('Please select a Sunday.');
+
+  const res = await fetch('/admin/add-date', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: selectedDate })
+  });
+
+  if (res.ok) {
+    alert("Date added successfully.");
+    loadAdminData();
+  } else {
+    alert('Date already exists or failed to add.');
+  }
+}
+
+    async function unlock(date, type) {
+      const res = await fetch('/admin/unlock-date', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, type })
+      });
+      if (res.ok) {
+        loadAdminData();
+      } else {
+        alert('Failed to unlock slot.');
+      }
+    }
+
+    async function deleteDate(date) {
+      if (!confirm(`Are you sure you want to delete ${date}?`)) return;
+      const res = await fetch('/admin/delete-date', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date })
+      });
+      if (res.ok) {
+        loadAdminData();
+      } else {
+        alert('Failed to delete date.');
+      }
+    }
+
+    async function deleteUser(username) {
+      if (!confirm(`Are you sure you want to delete user "${username}"?`)) return;
+      const res = await fetch('/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      if (res.ok) {
+        loadUsers();
+      } else {
+        alert('Failed to delete user.');
+      }
+    }
+
+    function populateBookingDates(dates) {
+      const select = document.getElementById('adminBookDate');
+      select.innerHTML = '';
+      dates.forEach(entry => {
+        const option = document.createElement('option');
+        option.value = entry.date;
+        option.textContent = entry.date;
+        select.appendChild(option);
+      });
+    }
+
+  async function loadCancellations() {
+    try {
+      const res = await fetch('/admin/data');
+      const data = await res.json();
+      console.log('Loaded data:', data); // ✅ Debug log
+
+      const cancellations = data.cancellations || [];
+      const users = data.users || [];
+
+      const tbody = document.querySelector('#cancellationTable tbody');
+      if (!tbody) return console.error('Table body not found');
+
+      tbody.innerHTML = '';
+
+      for (const entry of cancellations) {
+        const user = users.find(u => u.id === entry.userId);
+        const name = user
+          ? `${user.title || ''} ${user.firstName || user.username} ${user.lastName || ''}`.trim()
+          : `User ${entry.userId}`;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+        <td>${formatMMDDYY(new Date(entry.date))}</td>
+          <td>${entry.slotType}</td>
+          <td>${name}</td>
+          <td>${entry.reason || '—'}</td>
+          <td>${new Date(entry.timestamp).toLocaleString()}</td>
+        `;
+        tbody.appendChild(row);
+      }
+    } catch (err) {
+      console.error('Failed to load cancellations:', err);
+    }
+  }
+
+
+async function applyFilters() {
+  const userId = document.getElementById('userFilter').value;
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+
+  const params = new URLSearchParams();
+  if (userId) params.append('userId', userId);
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+
+  try {
+    const res = await fetch('/admin/cancellations?' + params.toString());
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    const data = await res.json();
+    renderCancellations(data);
+  } catch (err) {
+    console.error('Error fetching cancellations:', err);
+    alert('Failed to load filtered cancellations.');
+  }
+}
+
+
+function exportToCSV() {
+  const rows = currentLogData; // assume this is your displayed data
+  const headers = Object.keys(rows[0]).join(',');
+  const csv = rows.map(row => Object.values(row).join(',')).join('\n');
+  const blob = new Blob([`${headers}\n${csv}`], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cancellation_log.csv';
+  a.click();
+}
+
+async function loadCounts() {
+  const res = await fetch('/api/cancellations/counts');
+  const data = await res.json();
+  const html = data.map(entry => `<tr><td>${formatMMDDYY(new Date(entry._id))}</td><td>${entry.count}</td></tr>`).join('');
+  document.getElementById('countsTable').innerHTML = `<table><tr><th>User</th><th>Count</th></tr>${html}</table>`;
+}
+
+
+function exportCancellations() {
+  const rows = [['Date', 'Slot Type', 'User ID', 'Reason', 'Timestamp']];
+  const tableRows = document.querySelectorAll('#cancellationTable tbody tr');
+
+  tableRows.forEach(tr => {
+    const cells = Array.from(tr.children).map((td, i) => {
+  return i === 0 ? formatMMDDYY(new Date(td.textContent)) : td.textContent;
+});
+    rows.push(cells);
+  });
+
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cancellations.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderCancellations(data) {
+  const listContainer = document.getElementById('cancellationList');
+  const countDisplay = document.getElementById('cancellationCount');
+
+  listContainer.innerHTML = '';
+  countDisplay.textContent = `Total Cancellations: ${Array.isArray(data) ? data.length : 0}`;
+
+  if (!Array.isArray(data)) return;
+
+  data.forEach(entry => {
+    const row = document.createElement('div');
+    row.textContent = `User ${entry.userId} canceled ${entry.slotType} on ${formatMMDDYY(new Date(entry.date))}` +
+      (entry.reason ? ` — Reason: ${entry.reason}` : '');
+    listContainer.appendChild(row);
+  });
+}
+
+
+
+function getUpcomingSundays(count = 20) {
+  const sundays = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Find next Sunday
+  const day = today.getDay();
+  const nextSunday = new Date(today);
+  nextSunday.setDate(today.getDate() + ((7 - day) % 7));
+
+  for (let i = 0; i < count; i++) {
+    const sunday = new Date(nextSunday);
+    sunday.setDate(nextSunday.getDate() + i * 7);
+    sundays.push(sunday);
+  }
+  return sundays;
+}
+
+function formatMMDDYY(date) {
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const yy = String(date.getFullYear()).slice(-2);
+  return `${mm}-${dd}-${yy}`;
+}
+
+function populateAdminSundayDropdown() {
+  const select = document.getElementById('adminSundaySelect');
+  select.innerHTML = '';
+
+  const sundays = getUpcomingSundays(20);
+  sundays.forEach(date => {
+    const option = document.createElement('option');
+    option.value = date.toISOString().split('T')[0]; // backend format
+    option.textContent = formatMMDDYY(date); // display format
+    select.appendChild(option);
+  });
+}
+
+function formatMMDDYY(date) {
+  if (!(date instanceof Date) || isNaN(date)) return 'Invalid Date';
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const yy = String(date.getFullYear()).slice(-2);
+  return `${mm}-${dd}-${yy}`;
+}
+
+  // Load on page load
+  window.addEventListener('DOMContentLoaded', loadCancellations);
+
+    
+
     window.onload = () => {
-      refreshSlots();
+      loadAdminData();
+       populateAdminSundayDropdown(); // 👈 new
+
     };
+
+
   </script>
 </body>
 </html>
+
