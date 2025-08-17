@@ -82,6 +82,17 @@
       margin-top: 4px;
     }
 
+    #loginStatus {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 0.85rem;
+  font-weight: normal;
+  color: #555;
+  font-family: sans-serif;
+  opacity: 0.8;
+}
+
     .booked-brother { background-color: #f8d7da; color: #721c24; }
     .booked-sister { background-color: #d4edda; color: #155724; }
     .available-sister { background-color: #fff3cd; color: #856404; }
@@ -133,6 +144,7 @@
   </style>
 </head>
 <body>
+  <div id="loginStatus"> You are logged in as ${displayName}</div>
   <div class="container">
    
 
@@ -143,11 +155,14 @@
       <button onclick="attemptLogin()">Login</button>
     </div>
 
-    <h2>Slot Booking Tool</h2>
+  
  
 
     <div id="bookingSection">
+        <h2>SLOT BOOKING TOOL</h2>
       <div id="userInfo">    </div>
+
+  
 
       <button class="refresh-btn" onclick="refreshSlots()">🔄 Refresh Slots</button>
       <button onclick="showCancelModal()">❌ Cancel My Booking</button>
@@ -180,33 +195,35 @@
 
     let currentUser = null;
 
-    async function attemptLogin() {
-      const username = document.getElementById('loginUsername').value.trim();
-      const password = document.getElementById('loginPassword').value.trim();
-      if (!username || !password) return alert('Please enter both username and password.');
+async function attemptLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  if (!username || !password) return alert('Please enter both username and password.');
 
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+  const res = await fetch('/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
 
-      if (res.ok) {
-        currentUser = await res.json();
-        if (currentUser.userId === 212401) return window.location.href = 'admin.html';
+  if (res.ok) {
+    currentUser = await res.json();
+    if (currentUser.userId === 212401) return window.location.href = 'admin.html';
 
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('bookingSection').style.display = 'block';
+    const displayName = `${currentUser.title || 'Brother/Sister'} ${currentUser.lastName || currentUser.username}`;
 
-        const displayName = `${currentUser.title || 'Brother/Sister'} ${currentUser.lastName || currentUser.username}`;
-        document.getElementById('userInfo').textContent =
-          `You are logged in as ${displayName}`;
+    // ✅ Update both login status and booking header
+    document.getElementById('loginStatus').textContent = `Logged in as ${displayName}`;
+    document.getElementById('userInfo').textContent = `You are logged in as ${displayName}`;
 
-        refreshSlots();
-      } else {
-        alert('Invalid credentials or account disabled.');
-      }
-    }
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('bookingSection').style.display = 'block';
+
+    refreshSlots();
+  } else {
+    alert('Invalid credentials or account disabled.');
+  }
+}
 
     async function loadDates() {
       const res = await fetch('/admin/data');
@@ -232,7 +249,7 @@
       data.dates.forEach(entry => {
         const row = document.createElement('tr');
         const dateCell = document.createElement('td');
-        dateCell.textContent = entry.date;
+        dateCell.textContent = formatDate(new Date(entry.date)); // ✅ Stewardship-aligned format
 
         const openingCell = document.createElement('td');
         const closingCell = document.createElement('td');
@@ -253,7 +270,7 @@
     function getSlotLabel(entry) {
       if (!entry) return "Available";
       if (currentUser && entry.userId === currentUser.userId) return "Booked by You";
-      return `Booked by Admin ${entry.title}`;
+      return `Booked by a ${entry.title}`;
     }
 
     function getStatusClass(type, title, booked) {
@@ -295,40 +312,47 @@
       btn.title = "Click to book this slot. Preference shown based on other booking.";
       btn.disabled = !currentUser;
 
-      btn.onclick = async () => {
-        const alreadyBookedElsewhere = window.allDates?.some(d =>
-          (d.opening && d.opening.userId === userId && d.date !== entry.date) ||
-          (d.closing && d.closing.userId === userId && d.date !== entry.date)
-        );
+btn.onclick = async () => {
+  const selectedDate = entry.date; // ✅ Use the actual date from the slot
 
-        if (alreadyBookedElsewhere && (!thisSlot || thisSlot.userId !== userId)) {
-          alert("Looks like you've already reserved a slot on another date.\n\nTo change your booking, please cancel your current reservation first.");
-          return;
-        }
+  if (!selectedDate) {
+    alert("Invalid date. Please refresh and try again.");
+    return;
+  }
 
-        const confirmMsg = `Confirm booking for ${entry.date} (${type} prayer) as:\n${currentUser.title} ${currentUser.lastName}?`;
-        if (!confirm(confirmMsg)) return;
+  const alreadyBookedElsewhere = window.allDates?.some(d =>
+    (d.opening && d.opening.userId === userId && d.date !== selectedDate) ||
+    (d.closing && d.closing.userId === userId && d.date !== selectedDate)
+  );
 
-        const res = await fetch('/book-date', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: currentUser.title,
-            name: currentUser.username,
-            userId: currentUser.userId,
-            date: entry.date,
-            type
-          })
-        });
+  if (alreadyBookedElsewhere && (!thisSlot || thisSlot.userId !== userId)) {
+    alert("Looks like you've already reserved a slot.\n\nTo change your booking, please press ❌\n\non top of this table to cancel you\n\ncurrent reservation first.");
+    return;
+  }
 
-        if (res.ok) {
-          alert('Booking confirmed!');
-          refreshSlots();
-        } else {
-          const errorMsg = await res.text();
-          alert(`${errorMsg}\n\nThis slot may have just been booked by an admin or another user. Please refresh the page to see the latest availability.`);
-        }
-      };
+  const confirmMsg = `Confirm booking for ${formatDate(new Date(selectedDate))} (${type} prayer) as:\n${currentUser.title} ${currentUser.lastName}?`;
+  if (!confirm(confirmMsg)) return;
+
+  const res = await fetch('/book-date', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: currentUser.title,
+      name: currentUser.username,
+      userId: currentUser.userId,
+      date: selectedDate,
+      type
+    })
+  });
+
+  if (res.ok) {
+    alert('Booking confirmed!');
+    refreshSlots();
+  } else {
+    const errorMsg = await res.text();
+    alert(`${errorMsg}\n\nThis slot may have just been booked by an admin or another user. Please refresh the page to see the latest availability.`);
+  }
+};
 
       cell.appendChild(btn);
     }
@@ -443,10 +467,47 @@
       document.getElementById('cancelModal').style.display = 'none';
     }
 
+function getUpcomingSundays(count = 12) {
+  const sundays = [];
+  const today = new Date();
+  const dayOffset = (7 - today.getDay()) % 7;
+  let current = new Date(today);
+  current.setDate(today.getDate() + dayOffset);
+
+  for (let i = 0; i < count; i++) {
+    sundays.push(new Date(current));
+    current.setDate(current.getDate() + 7);
+  }
+
+  return sundays;
+}
+
+function formatDate(date) {
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const yy = String(date.getFullYear()).slice(-2);
+  return `${mm}-${dd}-${yy}`;
+}
+
+function populateSundayDropdown() {
+  const select = document.getElementById('sundaySelect');
+  select.innerHTML = '';
+
+  const sundays = getUpcomingSundays(12);
+  sundays.forEach(date => {
+    const option = document.createElement('option');
+    option.value = date.toISOString().split('T')[0]; // for backend
+    option.textContent = formatDate(date); // for display
+    select.appendChild(option);
+  });
+}
+
+
     window.onload = () => {
       refreshSlots();
+      populateSundayDropdown();
+
     };
   </script>
 </body>
 </html>
-
